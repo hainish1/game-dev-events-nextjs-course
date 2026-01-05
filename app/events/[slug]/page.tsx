@@ -55,9 +55,15 @@ const EventDetailsPage = async ({params} : {params: Promise<{slug: string}>}) =>
     const apiUrl = baseUrl ? `${baseUrl}/api/events/${slug}` : `/api/events/${slug}`;
     const request = await fetch(apiUrl);
 
-    const {event: {description, image, overview, date, time, location, mode, agenda, audience, tags, organizer}} = await request.json();
+    if (!request.ok) return notFound();
 
-    if(!description)return notFound();
+    const data: unknown = await request.json();
+    const event = (data as { event?: (EventAttrs & { _id?: unknown }) | null } | null)?.event ?? null;
+
+    if (!event?.description) return notFound();
+
+    const { description, image, overview, date, time, location, mode, agenda, audience, tags, organizer } = event;
+    const eventId = typeof event._id === 'string' ? event._id : '';
 
     const bookings = 10;
 
@@ -114,7 +120,7 @@ const EventDetailsPage = async ({params} : {params: Promise<{slug: string}>}) =>
                     ): (<p className="text-sm">Be the first to book your spot</p>
                     )}
 
-                    <BookEvent/>
+                    <BookEvent eventID={eventId} slug={event.slug} />
                 </div>
             </aside>
 
