@@ -1,4 +1,8 @@
 import BookEvent from "@/components/BookEvent";
+import EventCard from "@/components/EventCard";
+import type { EventAttrs } from "@/database/event.model";
+import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
+import { cacheLife } from "next/cache";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -43,6 +47,9 @@ const EventTags =({tags}: {tags: string[]}) => (
 
 
 const EventDetailsPage = async ({params} : {params: Promise<{slug: string}>}) => {
+    'use cache';
+    cacheLife('hours');
+
     const {slug} = await params;
     const baseUrl = (BASE_URL ?? "").trim().replace(/\/$/, "");
     const apiUrl = baseUrl ? `${baseUrl}/api/events/${slug}` : `/api/events/${slug}`;
@@ -53,6 +60,9 @@ const EventDetailsPage = async ({params} : {params: Promise<{slug: string}>}) =>
     if(!description)return notFound();
 
     const bookings = 10;
+
+    const similarEvents: Pick<EventAttrs, "title" | "image" | "slug" | "location" | "date" | "time">[] =
+        await getSimilarEventsBySlug(slug);
 
     return (
     <section id="event">
@@ -108,6 +118,24 @@ const EventDetailsPage = async ({params} : {params: Promise<{slug: string}>}) =>
                 </div>
             </aside>
 
+        </div>
+
+        <div className="flex w-full flex-col gap-4 pt-20">
+            <h2>Similar Events</h2>
+            <div className="events">
+                {similarEvents.length > 0 &&
+                    similarEvents.map((similarEvent) => (
+                        <EventCard
+                            key={similarEvent.slug}
+                            title={similarEvent.title}
+                            image={similarEvent.image}
+                            slug={similarEvent.slug}
+                            location={similarEvent.location}
+                            date={similarEvent.date}
+                            time={similarEvent.time}
+                        />
+                    ))}
+            </div>
         </div>
     </section>
   )
